@@ -1,91 +1,141 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useDropzone } from "react-dropzone";
 
-function App() {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [extractedText, setExtractedText] = useState("");
-  const [downloadUrl, setDownloadUrl] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  // Ensure the .env file is loaded properly
-  const BACKEND_URL = import.meta.env.VITE_API_URL;
-  console.log("Backend URL:", BACKEND_URL); // Debugging
+const BACKEND_URL = import.meta.env.VITE_API_URL;
+console.log("Backend URL:", BACKEND_URL); // Debugging
 
-  const handleFileChange = (event) => {
-    setSelectedFile(event.target.files[0]);
-  };
+const OCRUpload = () => {
+  const [file, setFile] = useState(null);
+  const [status, setStatus] = useState("");
+  const [downloadLink, setDownloadLink] = useState("");
+
+  const { getRootProps, getInputProps } = useDropzone({
+    accept: "application/pdf",
+    onDrop: (acceptedFiles) => {setFile(acceptedFiles[0]); 
+    setStatus("")
+    }
+  });
 
   const handleUpload = async () => {
-    if (!selectedFile) {
-      alert("Please select a file first!");
-      return;
-    }
+    if (!file) return alert("Please select a file first!");
 
-    setLoading(true);
+    setStatus("Uploading file...");
 
     const formData = new FormData();
-    formData.append("file", selectedFile);
+    formData.append("pdf", file);
 
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/ocr/extract-text`, formData, {
+      // const response = await axios.post("http://localhost:5000/upload", formData, {
+      //   headers: { "Content-Type": "multipart/form-data" },
+      // });
+      const response = await axios.post(`${BACKEND_URL}/upload`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-
-      if (response.data) {
-        setExtractedText("Text extracted successfully. Click below to download.");
-        setDownloadUrl(`${BACKEND_URL}${response.data}`);
-      }
-
-      setLoading("completed");
-      setTimeout(() => setLoading(false), 3000);
+      setStatus("Processing file.It takes 1-2 minutes please wait...");
+      checkStatus(response.data.jobLocation);
     } catch (error) {
-      console.error("Error uploading file:", error);
-      alert("Failed to extract text.");
-      setLoading(false);
+      console.error("Upload failed:", error);
+      setStatus("Upload failed. Try again.");
     }
+  };
+
+  const checkStatus = async (jobLocation) => {
+    let polling = setInterval(async () => {
+      try {
+        // const response = await axios.get("http://localhost:5000/status", {
+        //   params: { jobLocation },
+        // });
+        const response = await axios.get(`${BACKEND_URL}/status`, {
+          params: { jobLocation },
+        });
+
+        // Inside the checkStatus function when conversion is done
+        if (response.data.status === "done") {
+          clearInterval(polling);
+
+          // Generate the new filename
+          const newFilename = file.name.replace(/\.pdf$/i, '.docx');
+
+          // Encode parameters for the download URL
+          const encodedDownloadUri = encodeURIComponent(response.data.downloadUri);
+          const encodedFilename = encodeURIComponent(newFilename);
+
+          // Construct the download link pointing to your server's /download endpoint
+          const downloadLink = `${BACKEND_URL}/download?downloadUri=${encodedDownloadUri}&filename=${encodedFilename}`;
+
+          setDownloadLink(downloadLink);
+          setStatus("Conversion complete! Click to download.");
+        }
+      } catch (error) {
+        console.error("Status check failed:", error);
+        setStatus("Error checking status.");
+      }
+    }, 5000);
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6">
-      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-lg text-center">
-        <h2 className="text-2xl font-semibold text-gray-700 mb-4">OCR Text Extraction</h2>
-
-        <input
-          type="file"
-          onChange={handleFileChange}
-          accept="application/pdf"
-          className="mb-4 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
-        />
-
-        <button
-          onClick={handleUpload}
-          className={`text-white font-semibold py-2 px-4 rounded-lg w-full transition ${
-            loading === "completed"
-              ? "bg-green-600 hover:bg-green-700"
-              : "bg-blue-600 hover:bg-blue-700"
-          }`}
-          disabled={loading === true}
-        >
-          {loading === true ? "Processing..." : loading === "completed" ? "Completed!" : "Extract Text"}
-        </button>
-
-        {extractedText && (
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg shadow-inner">
-            <h3 className="text-lg font-medium text-gray-800">Extracted Text:</h3>
-            <pre className="text-gray-600 whitespace-pre-wrap">{extractedText}</pre>
-          </div>
-        )}
-
-        {downloadUrl && (
-          <a href={downloadUrl} download="extracted-text.txt" className="mt-4 inline-block">
-            <button className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition">
-              Download Extracted Text
-            </button>
-          </a>
-        )}
+    <div style={{ padding: "20px", textAlign: "center" }}>
+      <div className="logo-container">
+        {/* <img src={logo} alt="Triangle IP Logo" className="logo" /> */}
       </div>
+      <h2>PDF to Word Converter</h2>
+
+      <div {...getRootProps()} style={{ border: "2px dashed blue", padding: "20px", cursor: "pointer" }}>
+        <input {...getInputProps()} />
+        {file ? <p>{file.name}</p> : <p>Drag & Drop a PDF or Click to Select</p>}
+      </div>
+
+      {status === "Conversion complete! Click to download." || status === "Processing file.It takes 1-2 minutes please wait..." ? null : (<button onClick={handleUpload} disabled={!file} style={{
+        marginTop: "10px",
+        padding: "10px 20px",
+        fontSize: "16px",
+        fontWeight: "bold",
+        backgroundColor: file ? "#4CAF50" : "#ccc",
+        color: "white",
+        border: "none",
+        borderRadius: "5px",
+        cursor: file ? "pointer" : "not-allowed",
+        transition: "background-color 0.3s ease",
+      }}>
+        Convert PDF to Word
+      </button>)}
+
+      <p>{status}</p>
+      {downloadLink && file && status === "Conversion complete! Click to download." ? (
+        <a
+          href={downloadLink}
+          download={file.name.replace(/\.pdf$/i, ".docx")}
+        >
+          <button
+            style={{
+              padding: "12px 24px",
+              fontSize: "16px",
+              fontWeight: "bold",
+              backgroundColor: "#007BFF",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              transition: "background-color 0.3s ease, transform 0.2s ease",
+              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+            }}
+            onMouseOver={(e) => (e.target.style.backgroundColor = "#0056b3")}
+            onMouseOut={(e) => (e.target.style.backgroundColor = "#007BFF")}
+            onMouseDown={(e) => (e.target.style.transform = "scale(0.95)")}
+            onMouseUp={(e) => (e.target.style.transform = "scale(1)")}
+          >
+            Download Word File
+          </button>
+
+        </a>
+      ) : null}
+      <footer style={{ textAlign: "center", padding: "5px", marginTop: "350px", background: "#f1f1f1", fontSize: "15px" }}>
+        <p>&copy; 2025 TriangleIP. All rights reserved.</p>
+      </footer>
     </div>
   );
-}
+};
 
-export default App;
+export default OCRUpload;
