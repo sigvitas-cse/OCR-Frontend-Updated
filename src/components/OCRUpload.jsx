@@ -33,7 +33,7 @@ const OCRUpload = () => {
       const response = await axios.post(`${BACKEND_URL}/upload`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setStatus("Processing file.It takes 1-2 minutes please wait...");
+      setStatus("Processing Please wait...");
       checkStatus(response.data.jobLocation);
     } catch (error) {
       console.error("Upload failed:", error);
@@ -87,7 +87,7 @@ const OCRUpload = () => {
         {file ? <p>{file.name}</p> : <p>Click to Select</p>}
       </div>
 
-      {status === "Text Extraction Completed. Click below to download" || status === "Processing file.It takes 1-2 minutes please wait..." ? null : (<button onClick={handleUpload} disabled={!file} style={{
+      {status === "Text Extraction Completed. Click below to download" || status === "Processing Please wait..." ? null : (<button onClick={handleUpload} disabled={!file} style={{
         marginTop: "10px",
         padding: "10px 20px",
         fontSize: "16px",
