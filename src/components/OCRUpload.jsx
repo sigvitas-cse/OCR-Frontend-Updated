@@ -66,7 +66,7 @@ const OCRUpload = () => {
           const downloadLink = `${BACKEND_URL}/download?downloadUri=${encodedDownloadUri}&filename=${encodedFilename}`;
 
           setDownloadLink(downloadLink);
-          setStatus("Conversion complete! Click to download.");
+          setStatus("Text Extraction Completed. Click below to download");
         }
       } catch (error) {
         console.error("Status check failed:", error);
@@ -80,14 +80,14 @@ const OCRUpload = () => {
       <div className="logo-container">
         {/* <img src={logo} alt="Triangle IP Logo" className="logo" /> */}
       </div>
-      <h2>PDF to Word Converter</h2>
+      <h2>OCR Convertion</h2>
 
-      <div {...getRootProps()} style={{ border: "2px dashed blue", padding: "20px", cursor: "pointer" }}>
+      <div {...getRootProps()} style={{ border: "2px solid blue", padding: "20px", cursor: "pointer" }}>
         <input {...getInputProps()} />
-        {file ? <p>{file.name}</p> : <p>Drag & Drop a PDF or Click to Select</p>}
+        {file ? <p>{file.name}</p> : <p>Click to Select</p>}
       </div>
 
-      {status === "Conversion complete! Click to download." || status === "Processing file.It takes 1-2 minutes please wait..." ? null : (<button onClick={handleUpload} disabled={!file} style={{
+      {status === "Text Extraction Completed. Click below to download" || status === "Processing file.It takes 1-2 minutes please wait..." ? null : (<button onClick={handleUpload} disabled={!file} style={{
         marginTop: "10px",
         padding: "10px 20px",
         fontSize: "16px",
@@ -103,7 +103,7 @@ const OCRUpload = () => {
       </button>)}
 
       <p>{status}</p>
-      {downloadLink && file && status === "Conversion complete! Click to download." ? (
+      {downloadLink && file && status === "Text Extraction Completed. Click below to download" ? (
         <a
           href={downloadLink}
           download={file.name.replace(/\.pdf$/i, ".docx")}
