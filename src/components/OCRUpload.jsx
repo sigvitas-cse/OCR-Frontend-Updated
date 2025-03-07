@@ -99,7 +99,7 @@ const OCRUpload = () => {
         cursor: file ? "pointer" : "not-allowed",
         transition: "background-color 0.3s ease",
       }}>
-        Convert PDF to Word
+        Perform OCR
       </button>)}
 
       <p>{status}</p>
